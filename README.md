@@ -83,4 +83,4 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 This project is licensed under the MIT License.
 
 ---
-*Developed with ❤️ by NovaBank Engineering Team*
+*Developed with ❤️ by Rishiraj Thakur*
