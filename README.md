@@ -2,7 +2,16 @@
 
 **NovaBank** is a high-performance, real-time banking transaction analytics platform. It allows financial analysts to ingest large-scale transaction manifests (JSON) and visualize critical metrics, customer segments, and merchant activity through a sleek, modern dashboard.
 
-![NovaBank Dashboard](https://raw.githubusercontent.com/placeholder-image-url.png) *Replace with your screenshot after push*
+## 👀 Screenshots
+
+### 📊 Real-Time Analytics Dashboard
+![NovaBank Dashboard](./screenshots/dashboard.png)
+
+### 📂 Automated Batch Processing
+![Batch List](./screenshots/batches.png)
+
+### ☁️ Smart Manifest Ingestion
+![Upload Modal](./screenshots/upload.png)
 
 ---
 
