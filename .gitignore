@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+node_modules/
+.dockerignore
+docker-compose.yml
+Dockerfile
+*.log
+ retail_banking_scratch_v1.db

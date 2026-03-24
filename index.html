@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaBank | Retail Transaction Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.292.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --bg-deep: #05070a;
+            --glass-bg: rgba(13, 17, 23, 0.7);
+            --accent-primary: #00d2ff;
+            --accent-secondary: #3a7bd5;
+            --text-main: #e6edf3;
+            --text-dim: #848d97;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(0, 210, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(58, 123, 213, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-hover:hover {
+            border-color: rgba(0, 210, 255, 0.3);
+            transform: translateY(-2px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+        .drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .drop-zone.active {
+            border-color: var(--accent-primary);
+            background: rgba(0, 210, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-72 glass border-r border-white/5 p-8 flex flex-col h-screen z-20">
+        <div class="flex items-center gap-4 mb-12">
+            <div class="p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl shadow-lg shadow-cyan-500/20">
+                <i data-lucide="landmark" class="text-white w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-2xl tracking-tight text-white">NovaBank</h1>
+                <span class="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold">Enterprise Portal</span>
+            </div>
+        </div>
+
+        <nav class="flex-grow space-y-2">
+            <a href="#" class="flex items-center gap-3 px-4 py-3 bg-white/5 text-cyan-400 rounded-xl font-medium border border-cyan-500/20">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> <span>Insights</span>
+            </a>
+            <a href="#" onclick="toggleUploadModal()" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all group">
+                <i data-lucide="upload-cloud" class="w-5 h-5 group-hover:text-cyan-400"></i> <span>Upload Batch</span>
+            </a>
+        </nav>
+
+        <div class="mt-auto p-4 glass rounded-2xl border-cyan-500/20">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span class="text-xs font-semibold text-slate-300">System Live</span>
+            </div>
+            <p class="text-[10px] text-slate-500 font-medium">Nodes responding: 12/12</p>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-grow overflow-y-auto p-8 relative scroll-smooth h-screen">
+        <header class="flex justify-between items-start mb-12 animate-fade-in">
+            <div>
+                <h2 class="text-4xl font-bold tracking-tight mb-2">Global <span class="gradient-text">Liquidity</span></h2>
+                <div class="flex items-center gap-2 text-slate-500">
+                    <i data-lucide="clock" class="w-4 h-4"></i>
+                    <p class="text-sm font-medium" id="last-updated">Synchronizing real-time ledger...</p>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="fetchData()" class="group flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-2xl transition-all border border-white/5 hover:border-cyan-500/30">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 group-hover:rotate-180 transition-transform duration-500"></i>
+                    <span class="font-semibold">Sync Data</span>
+                </button>
+                <button onclick="resetEcosystem()" class="group flex items-center gap-2 px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-2xl transition-all border border-red-500/20 hover:border-red-500/40">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span class="font-semibold">Reset Ecosystem</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 animate-fade-in" style="animation-delay: 0.1s">
+            <div class="glass p-8 rounded-[2rem] relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <i data-lucide="activity" class="w-32 h-32 text-cyan-400"></i>
+                </div>
+                <span class="text-slate-400 font-bold text-xs uppercase tracking-widest block mb-4">Total Transactions</span>
+                <div class="text-5xl font-bold mb-2 tracking-tighter" id="total-transactions">0</div>
+                <div class="flex items-center gap-2 text-emerald-400 text-sm font-bold">
+                    <i data-lucide="trending-up" class="w-4 h-4"></i> <span>+12.5%</span>
+                </div>
+            </div>
+            <div class="glass p-8 rounded-[2rem] relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <i data-lucide="dollar-sign" class="w-32 h-32 text-cyan-400"></i>
+                </div>
+                <span class="text-slate-400 font-bold text-xs uppercase tracking-widest block mb-4">Total Volume</span>
+                <div class="text-5xl font-bold mb-2 tracking-tighter" id="total-volume">$0.00</div>
+                <div class="text-xs text-slate-500 font-semibold italic">Aggregation across all active batches</div>
+            </div>
+            <div class="glass p-8 rounded-[2rem] relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <i data-lucide="award" class="w-32 h-32 text-cyan-400"></i>
+                </div>
+                <span class="text-slate-400 font-bold text-xs uppercase tracking-widest block mb-4">Prime Associate</span>
+                <div class="text-3xl font-bold mb-2 truncate" id="top-merchant">N/A</div>
+                <span class="text-xs text-cyan-400/80 font-bold uppercase tracking-tighter" id="top-merchant-category">Highest Volume Partner</span>
+            </div>
+        </section>
+
+        <!-- Charts Row -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 animate-fade-in" style="animation-delay: 0.2s">
+            <div class="lg:col-span-2 glass p-10 rounded-[2.5rem]">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-2xl font-bold">Partner Engagement <span class="text-slate-500 text-sm font-medium ml-2">(Top 5 Merchants)</span></h3>
+                </div>
+                <div class="h-80"><canvas id="merchantChart"></canvas></div>
+            </div>
+            <div class="glass p-10 rounded-[2.5rem] flex flex-col items-center justify-center">
+                <h3 class="text-xl font-bold mb-8 text-center">Transaction DNA</h3>
+                <div class="relative w-full h-64">
+                    <canvas id="typeChart"></canvas>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span class="text-sm font-bold text-slate-500 uppercase tracking-widest">Type</span>
+                        <span class="text-2xl font-bold text-cyan-400" id="tx-type-count">--</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Batch Listing -->
+        <section class="animate-fade-in" style="animation-delay: 0.3s">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h3 class="text-3xl font-bold mb-2">Automated <span class="gradient-text">Batches</span></h3>
+                    <p class="text-slate-500 font-medium text-sm">Review recently processed transaction manifests</p>
+                </div>
+                <div class="text-xs font-bold text-cyan-400/60 uppercase tracking-widest border-b border-cyan-500/20 pb-1">Historical Records</div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="file-cards">
+                <!-- Cards will be injected here -->
+            </div>
+        </section>
+
+        <footer class="mt-20 pt-8 border-t border-white/5 text-center text-slate-600 text-[10px] uppercase tracking-[0.3em] font-bold pb-12">
+            NovaBank Cognitive Finance System &copy; 2026
+        </footer>
+    </main>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="glass w-full max-w-2xl p-10 rounded-[3rem] border-cyan-500/30 transform scale-95 transition-transform duration-300">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-3xl font-bold">Import <span class="gradient-text">Manifest</span></h3>
+                <button onclick="toggleUploadModal()" class="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-400 hover:text-white transition-all">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div id="dropZone" class="drop-zone glass-hover border-2 border-dashed border-white/10 rounded-[2rem] p-16 text-center cursor-pointer mb-8 group" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" onclick="if(event.target.tagName !== 'BUTTON') fileInput.click()">
+                <div id="dropZoneInstructions">
+                    <div class="w-20 h-20 bg-cyan-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-500">
+                        <i data-lucide="upload-cloud" class="w-10 h-10 text-cyan-400"></i>
+                    </div>
+                    <h4 class="text-xl font-bold mb-2">Drag & Drop Batch File</h4>
+                    <p class="text-slate-500 font-medium">Click to browse or drop here</p>
+                </div>
+                <div id="fileStatusArea" class="hidden">
+                    <div class="text-cyan-400 font-bold">
+                        <i data-lucide="file-check" class="w-12 h-12 mx-auto mb-4"></i>
+                        <p id="selectedFileName" class="text-lg">No file selected</p>
+                        <p class="text-xs text-slate-500 mt-2 mb-4">Ready to ingest</p>
+                        <button onclick="resetUploadForm(event)" class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-slate-400 hover:text-white transition-all">
+                            Change File
+                        </button>
+                    </div>
+                </div>
+                <input type="file" id="fileInput" class="hidden" accept=".json" onchange="handleFileSelect(event)">
+            </div>
+
+            <div id="uploadStatus" class="hidden glass p-6 rounded-2xl border-cyan-500/20 bg-cyan-500/5 mb-8 flex items-center gap-4">
+                <div class="p-3 bg-white/5 rounded-xl text-cyan-400" id="statusIcon">
+                    <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                </div>
+                <div>
+                    <p class="font-bold text-sm" id="statusTitle">Processing Ledger...</p>
+                    <p class="text-xs text-slate-500 italic" id="statusDesc">Decrypting and validating batch metadata</p>
+                </div>
+            </div>
+
+            <button onclick="uploadManifest()" id="uploadBtn" class="w-full py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-2xl shadow-xl shadow-cyan-500/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                Initialize Processing
+            </button>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? `http://${window.location.hostname}:8000` 
+            : `http://${window.location.hostname}:8000`; // Fallback to same host, different port
+        let typeChart, merchantChart;
+        let selectedFileData = null;
+
+        // Initialize Charts with default styles
+        Chart.defaults.color = '#848d97';
+        Chart.defaults.font.family = 'Outfit';
+
+        async function fetchData() {
+            console.log("Syncing with NovaBank Core...");
+            try {
+                const res = await fetch(`${API_BASE}/summary/overall`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                console.log("Ledger Data Received:", data);
+                
+                // Update basic stats
+                animateValue('total-transactions', 0, data.total_transactions, 1500);
+                
+                const volume = data.total_volume || 0;
+                const volumeText = volume >= 1000000 
+                    ? `$${(volume / 1000000).toFixed(2)}M` 
+                    : `$${(volume / 1000).toFixed(1)}K`;
+                document.getElementById('total-volume').innerText = volumeText;
+                
+                const topMerch = data.top_merchants && data.top_merchants[0] ? data.top_merchants[0] : { name: "N/A", volume: 0 };
+                document.getElementById('top-merchant').innerText = topMerch.name;
+                document.getElementById('last-updated').innerText = `Refined at: ${new Date().toLocaleTimeString()}`;
+
+                updateCharts(data);
+                fetchFiles();
+            } catch (e) {
+                console.error("Critical Sync Failure:", e);
+                document.getElementById('last-updated').innerHTML = `<span class="text-red-400 font-bold">Sync Error: ${e.message}</span>`;
+            }
+        }
+
+        async function fetchFiles() {
+            try {
+                const res = await fetch(`${API_BASE}/files`);
+                const fileIds = await res.json();
+                const container = document.getElementById('file-cards');
+                container.innerHTML = '';
+                
+                if (fileIds.length === 0) {
+                    container.innerHTML = '<div class="col-span-full py-12 text-center text-slate-500 italic">No batches found. Import a manifest to begin.</div>';
+                    return;
+                }
+
+                for (const fileId of fileIds) {
+                    const detailRes = await fetch(`${API_BASE}/summary/file/${fileId}`);
+                    const details = await detailRes.json();
+                    renderFileCard(details);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function updateCharts(data) {
+            // Merchant Volume Chart
+            const merchCtx = document.getElementById('merchantChart').getContext('2d');
+            const gradient = merchCtx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(0, 210, 255, 0.4)');
+            gradient.addColorStop(1, 'rgba(58, 123, 213, 0.05)');
+
+            if (merchantChart) merchantChart.destroy();
+            merchantChart = new Chart(merchCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.top_merchants.map(m => m.name),
+                    datasets: [{
+                        label: 'Volume ($)',
+                        data: data.top_merchants.map(m => m.volume),
+                        backgroundColor: gradient,
+                        borderColor: '#00d2ff',
+                        borderWidth: 2,
+                        borderRadius: 12,
+                        hoverBackgroundColor: 'rgba(0, 210, 255, 0.6)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { cornerRadius: 10 } },
+                    scales: { 
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' } }, 
+                        x: { grid: { display: false } } 
+                    }
+                }
+            });
+
+            // Transaction Type (DNA) Chart
+            const typeCtx = document.getElementById('typeChart').getContext('2d');
+            const summary = data.account_activity_summary || {};
+            const labels = Object.keys(summary);
+            const counts = Object.values(summary);
+            
+            if (typeChart) typeChart.destroy();
+            typeChart = new Chart(typeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.length ? labels : ['Pending...'],
+                    datasets: [{
+                        data: counts.length ? counts : [1],
+                        backgroundColor: [
+                            'rgba(0, 210, 255, 0.6)',
+                            'rgba(58, 123, 213, 0.6)',
+                            'rgba(147, 51, 234, 0.6)',
+                            'rgba(234, 179, 8, 0.6)',
+                            'rgba(234, 88, 12, 0.6)'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    cutout: '85%',
+                    plugins: { legend: { display: false } },
+                    maintainAspectRatio: false
+                }
+            });
+            document.getElementById('tx-type-count').innerText = labels.length || '0';
+        }
+
+        function renderFileCard(data) {
+            const container = document.getElementById('file-cards');
+            const card = document.createElement('div');
+            card.className = "glass p-8 rounded-[2rem] glass-hover group cursor-pointer animate-fade-in";
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-6">
+                    <div class="p-4 bg-white/5 rounded-2xl group-hover:bg-cyan-500/10 group-hover:text-cyan-400 transition-all">
+                        <i data-lucide="package-check" class="w-6 h-6"></i>
+                    </div>
+                    <span class="text-[10px] font-bold tracking-[0.2em] bg-white/5 px-3 py-1.5 rounded-full text-slate-500">${data.file_id}</span>
+                </div>
+                <h4 class="text-xl font-bold mb-4">Batch Processed</h4>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center bg-white/5 p-4 rounded-xl">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-tighter">Event Count</span>
+                        <span class="text-sm font-bold text-white">${data.total_transactions.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-white/5 p-4 rounded-xl">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-tighter">Settlement</span>
+                        <span class="text-sm font-bold text-cyan-400">$${(data.total_amount/1000).toFixed(1)}k</span>
+                    </div>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    ${Object.entries(data.transaction_type_distribution || {}).map(([type, count]) => `
+                        <span class="text-[9px] px-2 py-1 bg-white/5 rounded-md text-slate-400 border border-white/5">${type}: ${count}</span>
+                    `).join('')}
+                </div>
+                <div class="mt-6 pt-6 border-t border-white/5 flex items-center gap-2 text-xs text-slate-500 font-bold group-hover:text-slate-300 transition-colors">
+                    <i data-lucide="users" class="w-3 h-3"></i>
+                    <span>${data.unique_customers} UNIQUE NODES</span>
+                </div>
+            `;
+            container.appendChild(card);
+            lucide.createIcons();
+        }
+
+        // --- UI Interactions ---
+        function toggleUploadModal() {
+            const modal = document.getElementById('uploadModal');
+            const inner = modal.querySelector('.max-w-2xl');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.add('opacity-100');
+                    inner.classList.remove('scale-95');
+                }, 10);
+            } else {
+                modal.classList.remove('opacity-100');
+                inner.classList.add('scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            }
+        }
+
+        function handleDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('active'); }
+        function handleDragLeave(e) { e.preventDefault(); document.getElementById('dropZone').classList.remove('active'); }
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.remove('active');
+            const file = e.dataTransfer.files[0];
+            processSelectedFile(file);
+        }
+        function handleFileSelect(e) { processSelectedFile(e.target.files[0]); }
+
+        function processSelectedFile(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    selectedFileData = JSON.parse(e.target.result);
+                    document.getElementById('dropZoneInstructions').classList.add('hidden');
+                    document.getElementById('fileStatusArea').classList.remove('hidden');
+                    document.getElementById('selectedFileName').textContent = file.name;
+                    lucide.createIcons();
+                } catch (err) { alert("Invalid JSON file"); }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetUploadForm(e) {
+            if (e) e.stopPropagation();
+            selectedFileData = null;
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.value = '';
+            document.getElementById('dropZoneInstructions').classList.remove('hidden');
+            document.getElementById('fileStatusArea').classList.add('hidden');
+            document.getElementById('uploadStatus').classList.add('hidden');
+            document.getElementById('uploadBtn').disabled = false;
+        }
+
+        async function uploadManifest() {
+            if (!selectedFileData) return alert("Select a valid manifest first");
+            
+            const btn = document.getElementById('uploadBtn');
+            const status = document.getElementById('uploadStatus');
+            btn.disabled = true;
+            status.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(selectedFileData)
+                });
+                
+                if (res.ok) {
+                    document.getElementById('statusTitle').innerText = "Aggregation Complete";
+                    document.getElementById('statusDesc').innerText = "Ledger synchronized with global core";
+                    setTimeout(() => {
+                        toggleUploadModal();
+                        fetchData();
+                        // Reset
+                        selectedFileData = null;
+                        btn.disabled = false;
+                        status.classList.add('hidden');
+                    }, 1500);
+                } else { throw new Error("Processing Error"); }
+            } catch (e) {
+                alert("Upload failed: " + e.message);
+                btn.disabled = false;
+            }
+        }
+
+        async function resetEcosystem() {
+            if (!confirm("CRITICAL: This will permanently wipe the NovaBank Ledger. Proceed with Ecosystem Reset?")) return;
+            try {
+                const res = await fetch(`${API_BASE}/clear`, { method: 'POST' });
+                if (res.ok) {
+                    alert("Ecosystem Purged. Starting from Zero.");
+                    fetchData();
+                } else { throw new Error("Reset Failed"); }
+            } catch (e) { alert("Reset Error: " + e.message); }
+        }
+
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerText = Math.floor(progress * (end - start) + start).toLocaleString();
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        fetchData();
+        setInterval(fetchData, 30000);
+    </script>
+</body>
+</html>
