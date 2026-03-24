@@ -8,7 +8,7 @@ load_dotenv()
 def create_database():
     # Connect to the default 'postgres' database to create the new one
     db_user = os.getenv("DB_USER", "postgres")
-    db_password = os.getenv("DB_PASSWORD", "Rishi@2005")
+    db_password = os.getenv("DB_PASSWORD", "")
     db_host = os.getenv("DB_HOST", "127.0.0.1")
     db_port = os.getenv("DB_PORT", "5432")
     db_name = os.getenv("DB_NAME", "retail_banking_scratch_v1")
